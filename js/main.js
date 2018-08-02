@@ -71,15 +71,12 @@ Main = (function() {
         if(!isTweening) {
             isTweening = true;
             var tweenTime = 750;
+            var oldRotation = _this.m_cCamera.rotation.y;
             var source = {
                 rotation: _this.m_cCamera.rotation.y,
-                oldOpacity: 1,
-                newOpacity: 0
             };
             var target = {
                 rotation: _this.m_cCamera.rotation.y,
-                oldOpacity: 0,
-                newOpacity: 1
             };
 
             if(action === "next") {
@@ -94,27 +91,22 @@ Main = (function() {
             tween.easing(TWEEN.Easing.Quadratic.InOut);
             tween.onUpdate(function() {
                 _this.m_cCamera.rotation.y = source.rotation;
+                var factor = Math.abs(source.rotation - oldRotation) / fi;
+                var value;
+                if((factor *= 2) < 1) {
+                    value = 0.5 * factor * factor;
+                    _this.m_aPlanes.current.material.uniforms.opacity.value = 1.0 - value;
+                    _this.m_aPlanes[action].material.uniforms.opacity.value = value;
+                } else {
+                    value = -0.5 * (--factor * (factor - 2) - 1);
+                    _this.m_aPlanes.current.material.uniforms.opacity.value = 1.0 - value;
+                    _this.m_aPlanes[action].material.uniforms.opacity.value = value;
+                }
             });
             tween.onComplete(function() {
                 _this.m_cCamera.rotation.y = target.rotation;
-            });
-
-            var sourceOldOp = {
-                opacity: 1
-            };
-            var targetOldOp = {
-                opacity: 0
-            };
-            var oldTween = new TWEEN.Tween(sourceOldOp);
-            oldTween.to(targetOldOp, tweenTime);
-            oldTween.interpolation(TWEEN.Interpolation.Linear);
-            oldTween.easing(TWEEN.Easing.Quadratic.InOut);
-            oldTween.onUpdate(function() {
-                _this.m_aPlanes.current.material.uniforms.opacity.value = sourceOldOp.opacity;
-                // _this.m_aPlanes.current.material.uniforms.opacity.value += (1 / 60);
-            });
-            oldTween.onComplete(function() {
-                _this.m_aPlanes.current.material.uniforms.opacity.value = targetOldOp.opacity;
+                _this.m_aPlanes.current.material.uniforms.opacity.value = 0;
+                _this.m_aPlanes[action].material.uniforms.opacity.value = 1;
                 _this.m_aPlanes.current.material.uniforms.direction.value = -1;
                 _this.m_aPlanes.next.material.uniforms.direction.value = -1;
                 _this.m_aPlanes.previous.material.uniforms.direction.value = -1;
@@ -125,29 +117,7 @@ Main = (function() {
                 }
                 isTweening = false;
             });
-
-            var sourcenewOp = {
-                opacity: 0
-            };
-            var targetnewOp = {
-                opacity: 1
-            };
-            var newTween = new TWEEN.Tween(sourcenewOp);
-            newTween.to(targetnewOp, tweenTime);
-            newTween.interpolation(TWEEN.Interpolation.Linear);
-            newTween.easing(TWEEN.Easing.Quadratic.InOut);
-            newTween.onUpdate(function() {
-                _this.m_aPlanes[action].material.uniforms.opacity.value = sourcenewOp.opacity;
-                // _this.m_aPlanes[action].material.uniforms.opacity.value -= (1 / 60);
-            });
-            newTween.onComplete(function() {
-                _this.m_aPlanes[action].material.uniforms.opacity.value = targetnewOp.opacity;
-
-            });
-
             tween.start();
-            newTween.start();
-            oldTween.start();
         }
     }
 
@@ -196,158 +166,19 @@ Main = (function() {
     Main.prototype = {
 
         startRender: function() {
-            // get canvas dimentions
-            this.m_nWidth = window.innerWidth;
-            this.m_nHeight = window.innerHeight;
-            aspect = this.m_nWidth / this.m_nHeight;
 
-            // Calculating horizontal fov
-            vFOV = 2 * Math.atan(this.m_nHeight / (2 * distFromCamera));
-            hFOV = 2 * Math.atan( Math.tan( vFOV / 2 ) * aspect );
-            this.m_rFOV = (vFOV * 180) / Math.PI;
+            this.m_cRenderer = new Renderer(this.m_cSettings);
+            this.m_cRenderer.setupScene();
 
-            // create renderer
-            this.m_cRenderer = new THREE.WebGLRenderer({
-                antialias: true,
-                alpha: true,
-                depth: 100000
-            });
-
-            this.m_cRenderer.setSize(this.m_nWidth, this.m_nHeight);
-            document.body.appendChild(this.m_cRenderer.domElement);
-            var dom = this.m_cRenderer.domElement;
-            window.addEventListener("keydown", _onKeyDown, true);
-
-            this.m_cRenderer.setClearColor(0x000000, 1);
-            this.m_cRenderer.setFaceCulling(THREE.CullFaceNone); // disable face culling
-            this.m_cRenderer.alpha = true;
-
-            var common = (this.m_nWidth / 2) - (distFromCamera * Math.tan(fi - hFOV / 2));
-            var uniforms = {
-                opacity: {
-                    type: 'f',
-                    value: 1.0
-                },
-                map: {
-                    type: 't',
-                    value: null
-                },
-                direction: {
-                    type: 'i',
-                    value: -1
-                },
-                overlap: {
-                    type: 'f',
-                    value: common / this.m_nWidth
-                }
-            };
-
-            var uniforms1 = {
-                opacity: {
-                    type: 'f',
-                    value: 1.0
-                },
-                map: {
-                    type: 't',
-                    value: null
-                },
-                direction: {
-                    type: 'i',
-                    value: -1
-                },
-                overlap: {
-                    type: 'f',
-                    value: common / this.m_nWidth
-                }
-            };
-
-            var uniforms2 = {
-                opacity: {
-                    type: 'f',
-                    value: 1.0
-                },
-                map: {
-                    type: 't',
-                    value: null
-                },
-                direction: {
-                    type: 'i',
-                    value: -1
-                },
-                overlap: {
-                    type: 'f',
-                    value: common / this.m_nWidth
-                }
-            };
-
-            // create a new 3D scene
-            this.m_cScene = new THREE.Scene();
-            var geometry = new THREE.PlaneGeometry( _this.m_nWidth, _this.m_nHeight, 32 );
-            var material = new THREE.ShaderMaterial({
-                uniforms: uniforms,
-        		vertexShader:   $('#vertexshader').text(),
-        		fragmentShader: $('#fragmentshader').text(),
-                transparent: true,
-                needsUpdate: true,
-                blending: THREE.AdditiveBlending,
-                depthTest: false
-            });
-            _this.m_aPlanes.current = new THREE.Mesh(geometry, material);
-
-            geometry = new THREE.PlaneGeometry( _this.m_nWidth, _this.m_nHeight, 32 );
-            material = new THREE.ShaderMaterial({
-                uniforms: uniforms1,
-        		vertexShader:   $('#vertexshader').text(),
-        		fragmentShader: $('#fragmentshader').text(),
-                transparent: true,
-                needsUpdate: true,
-                blending: THREE.AdditiveBlending,
-                depthTest: false
-            });
-            _this.m_aPlanes.previous = new THREE.Mesh(geometry, material);
-
-            geometry = new THREE.PlaneGeometry( _this.m_nWidth, _this.m_nHeight, 32 );
-            material = new THREE.ShaderMaterial({
-                uniforms: uniforms2,
-        		vertexShader:   $('#vertexshader').text(),
-        		fragmentShader: $('#fragmentshader').text(),
-                transparent: true,
-                needsUpdate: true,
-                blending: THREE.AdditiveBlending,
-                depthTest: false
-            });
-            _this.m_aPlanes.next = new THREE.Mesh(geometry, material);
-
-            _this.m_cScene.add(_this.m_aPlanes.current);
-            _this.m_cScene.add(_this.m_aPlanes.previous);
-            _this.m_cScene.add(_this.m_aPlanes.next);
-
-            // add ambient light to scene
-            var light = new THREE.AmbientLight(0xFFFFFF);
-            this.m_cScene.add(light);
-
-            // this.m_rFOV = 60;
-            this.m_cCamera = new THREE.PerspectiveCamera(this.m_rFOV, aspect, 0.1, 10000.0);
-            // this.m_cCamera.rotation.x = -Math.PI / 3;
-            // this.m_cCamera.position.y = 1200;
-            this.m_cScene.add(this.m_cCamera);
-            this.m_cScene.background = new THREE.Color(0x000000);
             _createPlanes();
 
             function runProcessLoop() {
-                // if(uniforms.opacity.value > 0 ) {
-                //     uniforms.opacity.value -= 0.005;
-                // }
                 requestAnimationFrame(runProcessLoop);
-                _this.m_cRenderer.render(_this.m_cScene, _this.m_cCamera);
+                _this.m_cRenderer.update();
                 TWEEN.update();
             }
 
             runProcessLoop();
-        },
-
-        stopRender: function() {
-
         }
 
     };
