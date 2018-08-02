@@ -1,10 +1,11 @@
 EventService = (function() {
 
-    var _this = this;
+    var _this;
 
     function EventService(cSettings, cRenderer) {
         this.m_cSettings = cSettings;
         this.m_cRenderer = cRenderer;
+        _this = this;
         _init.call(this);
     }
 

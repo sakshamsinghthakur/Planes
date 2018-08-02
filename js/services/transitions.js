@@ -1,11 +1,15 @@
 Transitions = (function() {
 
+    var _this;
+
     function Transitions(cSettings) {
         this.m_cSettings = cSettings;
         this.m_cCamera = null;
         this.m_cImagePlanes = null;
         this.m_aPlanes = null;
         this.m_rFOV = 60;
+        this.m_fIsTweening = false;
+        _this = this;
         _init.call(this);
     }
 
@@ -24,8 +28,8 @@ Transitions = (function() {
     Transitions.prototype = {
 
         startTransition: function(action) {
-            if(!isTweening) {
-                isTweening = true;
+            if(!this.m_fIsTweening) {
+                this.m_fIsTweening = true;
                 var tweenTime = 750;
                 var oldRotation = this.m_cCamera.rotation.y;
                 var source = {
@@ -50,32 +54,33 @@ Transitions = (function() {
                 tween.interpolation(TWEEN.Interpolation.Linear);
                 tween.easing(TWEEN.Easing.Quadratic.InOut);
                 tween.onUpdate(function() {
-                    this.m_cCamera.rotation.y = source.rotation;
-                    var factor = Math.abs(source.rotation - oldRotation) / this.m_cSettings.fi;
+                    _this.m_cCamera.rotation.y = source.rotation;
+                    var factor = Math.abs(source.rotation - oldRotation) / _this.m_cSettings.fi;
                     var value;
                     if((factor *= 2) < 1) {
                         value = 0.5 * factor * factor;
-                        this.m_aPlanes.current.material.uniforms.opacity.value = 1.0 - value;
-                        this.m_aPlanes[action].material.uniforms.opacity.value = value;
+                        _this.m_aPlanes.current.material.uniforms.opacity.value = 1.0 - value;
+                        _this.m_aPlanes[action].material.uniforms.opacity.value = value;
+                        console.log(_this.m_aPlanes.current.material.uniforms.opacity.value);
                     } else {
                         value = -0.5 * (--factor * (factor - 2) - 1);
-                        this.m_aPlanes.current.material.uniforms.opacity.value = 1.0 - value;
-                        this.m_aPlanes[action].material.uniforms.opacity.value = value;
+                        _this.m_aPlanes.current.material.uniforms.opacity.value = 1.0 - value;
+                        _this.m_aPlanes[action].material.uniforms.opacity.value = value;
                     }
                 });
                 tween.onComplete(function() {
-                    this.m_cCamera.rotation.y = target.rotation;
-                    this.m_aPlanes.current.material.uniforms.opacity.value = 0;
-                    this.m_aPlanes[action].material.uniforms.opacity.value = 1;
-                    this.m_aPlanes.current.material.uniforms.direction.value = -1;
-                    this.m_aPlanes.next.material.uniforms.direction.value = -1;
-                    this.m_aPlanes.previous.material.uniforms.direction.value = -1;
+                    _this.m_cCamera.rotation.y = target.rotation;
+                    _this.m_aPlanes.current.material.uniforms.opacity.value = 0;
+                    _this.m_aPlanes[action].material.uniforms.opacity.value = 1;
+                    _this.m_aPlanes.current.material.uniforms.direction.value = -1;
+                    _this.m_aPlanes.next.material.uniforms.direction.value = -1;
+                    _this.m_aPlanes.previous.material.uniforms.direction.value = -1;
                     if(action === "next") {
-                        this.m_cImagePlanes.goToNext();
+                        _this.m_cImagePlanes.goToNext();
                     } else {
-                        this.m_cImagePlanes.goToPrevious();
+                        _this.m_cImagePlanes.goToPrevious();
                     }
-                    isTweening = false;
+                    _this.m_fIsTweening = false;
                 });
                 tween.start();
             }
