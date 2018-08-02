@@ -8,9 +8,9 @@ Renderer = (function() {
 
         setupScene: function() {
             // get canvas dimentions
-            this.m_nWidth = window.innerWidth;
-            this.m_nHeight = window.innerHeight;
-            aspect = this.m_nWidth / this.m_nHeight;
+            this.m_cSettings.width = window.innerWidth;
+            this.m_cSettings.height = window.innerHeight;
+            this.m_cSettings.aspect = this.m_cSettings.width / this.m_cSettings.height;
 
             // create renderer
             this.m_cRenderer = new THREE.WebGLRenderer({
@@ -19,15 +19,9 @@ Renderer = (function() {
                 depth: 100000
             });
 
-            this.m_cRenderer.setSize(this.m_nWidth, this.m_nHeight);
+            this.m_cRenderer.setSize(this.m_cSettings.width, this.m_cSettings.height);
             document.body.appendChild(this.m_cRenderer.domElement);
             var dom = this.m_cRenderer.domElement;
-
-
-
-
-            // Event Service
-            window.addEventListener("keydown", _onKeyDown, true);
 
             this.m_cRenderer.setClearColor(0x000000, 1);
             this.m_cRenderer.setFaceCulling(THREE.CullFaceNone); // disable face culling
@@ -40,18 +34,24 @@ Renderer = (function() {
             // add ambient light to scene
             var light = new THREE.AmbientLight(0xFFFFFF);
             this.m_cScene.add(light);
-
-            this.m_cScene.add(this.m_cTransitions.getCamera());
+            this.m_cCamera = this.m_cTransitions.getCamera();
+            this.m_cScene.add(this.m_cCamera);
             this.m_cScene.add(this.m_cTransitions.getPlanes());
+            console.log(this.m_cScene);
             this.m_cScene.background = new THREE.Color(0x000000);
 
-            _this.m_cRenderer.render(_this.m_cScene, _this.m_cCamera);
+            this.m_cRenderer.render(this.m_cScene, this.m_cCamera);
         },
 
         update: function() {
-            _this.m_cRenderer.render(_this.m_cScene, _this.m_cCamera);
+            this.m_cRenderer.render(this.m_cScene, this.m_cCamera);
+        },
+
+        startTransition: function(action) {
+            this.m_cTransitions.startTransition(action);
         }
 
     };
 
+    return Renderer;
 })();
